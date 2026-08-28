@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titulo %}Ingreso de huéspedes — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-box-arrow-in-right"></i> Ingreso de huéspedes</h1>
+<p class="text-muted small mb-3">Reservas cuya fecha de ingreso ya llegó y todavía no registraron su ingreso.</p>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr class="text-muted small">
+          <th>#</th>
+          <th>Huésped</th>
+          <th>Habitación</th>
+          <th>Ingreso planeado</th>
+          <th>Salida</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservas %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td><a href="{% url 'huesped_detalle' r.cliente.cedula %}">{{ r.cliente.nombre_completo }}</a></td>
+          <td><a href="{% url 'habitacion_detalle' r.habitacion.codigo %}">{{ r.habitacion.numero }}</a></td>
+          <td>{{ r.fecha_ingreso|date:"d/m/Y" }}</td>
+          <td>{{ r.fecha_salida|date:"d/m/Y" }}</td>
+          <td class="text-end">
+            <form method="post" action="{% url 'checkin_confirmar' r.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-success">
+                <i class="bi bi-box-arrow-in-right"></i> Registrar ingreso
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No hay ingresos pendientes.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

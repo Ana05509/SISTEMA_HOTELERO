@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titulo %}Confirmar reserva — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<nav class="mb-3 small">
+  <a href="{% url 'reserva_nueva' %}"><i class="bi bi-arrow-left"></i> Volver a buscar</a>
+</nav>
+<h1 class="h3 mb-4"><i class="bi bi-journal-check"></i> Confirmar reserva</h1>
+
+<div class="row g-3">
+  {% if habitacion %}
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h5">Hab. {{ habitacion.numero }}</h2>
+        <p class="text-muted small mb-1">{{ habitacion.tipo.nombre }}</p>
+        <p class="mb-0">${{ habitacion.precio }} / noche</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger py-2 small">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <form method="post">
+          {% csrf_token %}
+          {{ form.habitacion }}
+
+          <div class="mb-3">
+            <label class="form-label">{{ form.cliente.label }}</label>
+            {{ form.cliente }}
+            <div class="form-text">{{ form.cliente.help_text }}</div>
+            {% for error in form.cliente.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="form-label">Ingreso</label>
+              {{ form.fecha_ingreso }}
+              {% for error in form.fecha_ingreso.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-6 mb-3">
+              <label class="form-label">Salida</label>
+              {{ form.fecha_salida }}
+              {% for error in form.fecha_salida.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Confirmar reserva</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

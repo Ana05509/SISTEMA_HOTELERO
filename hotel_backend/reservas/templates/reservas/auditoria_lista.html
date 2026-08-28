@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titulo %}Auditoría — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-shield-lock"></i> Auditoría</h1>
+<p class="text-muted small mb-3">
+  Registro de solo lectura: quién hizo qué y cuándo. Nadie puede editarlo ni borrarlo desde acá ni desde el admin.
+</p>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+  <div class="col-auto">
+    <label class="form-label small mb-0">Módulo</label>
+    <select name="modulo" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% for m in modulos %}
+      <option value="{{ m }}" {% if m == modulo_actual %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">Acción</label>
+    <select name="accion" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      {% for a in acciones %}
+      <option value="{{ a }}" {% if a == accion_actual %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr class="text-muted small">
+          <th>Fecha</th><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Objeto</th><th>Descripción</th><th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in pagina %}
+        <tr>
+          <td>{{ r.fecha|date:"d/m/Y H:i" }}</td>
+          <td>{{ r.usuario|default:"—" }}</td>
+          <td><span class="badge text-bg-light text-dark border">{{ r.accion }}</span></td>
+          <td>{{ r.modulo }}</td>
+          <td>{{ r.objeto_repr|default:"—" }}</td>
+          <td class="small">{{ r.descripcion }}</td>
+          <td class="small text-muted">{{ r.direccion_ip|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No hay registros todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pagina.has_other_pages %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm">
+    {% if pagina.has_previous %}
+    <li class="page-item"><a class="page-link" href="?modulo={{ modulo_actual }}&accion={{ accion_actual }}&page={{ pagina.previous_page_number }}">Anterior</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span></li>
+    {% if pagina.has_next %}
+    <li class="page-item"><a class="page-link" href="?modulo={{ modulo_actual }}&accion={{ accion_actual }}&page={{ pagina.next_page_number }}">Siguiente</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

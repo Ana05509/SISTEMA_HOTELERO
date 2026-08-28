@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load reservas_extras %}
+{% block titulo %}Habitación {{ habitacion.numero }} — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<nav class="mb-3 small">
+  <a href="{% url 'habitaciones_grid' %}"><i class="bi bi-arrow-left"></i> Volver a habitaciones</a>
+</nav>
+
+<div class="row g-3">
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <h1 class="h4"><i class="bi bi-door-closed"></i> Habitación {{ habitacion.numero }}</h1>
+          <span class="badge text-bg-secondary">{{ habitacion.estado }}</span>
+        </div>
+        <dl class="row mb-0 mt-3">
+          <dt class="col-sm-4">Tipo</dt>
+          <dd class="col-sm-8">{{ habitacion.tipo.nombre }} (capacidad {{ habitacion.tipo.capacidad }}, {{ habitacion.tipo.camas }} cama/s)</dd>
+
+          <dt class="col-sm-4">Piso</dt>
+          <dd class="col-sm-8">{{ habitacion.piso|default:"—" }}</dd>
+
+          <dt class="col-sm-4">Precio</dt>
+          <dd class="col-sm-8">${{ habitacion.precio }} / noche</dd>
+
+          {% if habitacion.descripcion %}
+          <dt class="col-sm-4">Descripción</dt>
+          <dd class="col-sm-8">{{ habitacion.descripcion }}</dd>
+          {% endif %}
+
+          {% if habitacion.caracteristicas %}
+          <dt class="col-sm-4">Características</dt>
+          <dd class="col-sm-8">{{ habitacion.caracteristicas }}</dd>
+          {% endif %}
+        </dl>
+
+        {% if perms.reservas.change_habitacion %}
+        <a href="/admin/reservas/habitacion/{{ habitacion.codigo|urlencode }}/change/" class="btn btn-sm btn-outline-secondary mt-2">
+          <i class="bi bi-pencil"></i> Editar
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    {% if habitacion.imagen %}
+    <img src="{{ habitacion.imagen.url }}" alt="Foto de la habitación {{ habitacion.numero }}" class="img-fluid rounded shadow-sm mb-3">
+    {% endif %}
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-person-check"></i> Ocupación actual</h2>
+        {% if reserva_actual %}
+          <p class="mb-1"><strong>Huésped:</strong>
+            <a href="{% url 'huesped_detalle' reserva_actual.cliente.cedula %}">
+              {{ reserva_actual.cliente.nombre_completo }}
+            </a>
+          </p>
+          <p class="mb-1"><strong>Ingreso:</strong> {{ reserva_actual.fecha_ingreso|date:"d/m/Y" }}</p>
+          <p class="mb-1"><strong>Salida:</strong> {{ reserva_actual.fecha_salida|date:"d/m/Y" }}</p>
+          <span class="badge text-bg-{{ reserva_actual.estado_display|estado_reserva_badge }}">{{ reserva_actual.estado_display }}</span>
+        {% elif perms.reservas.view_reserva %}
+          <p class="text-muted small mb-0">No hay una reserva activa para hoy en esta habitación.</p>
+        {% else %}
+          <p class="text-muted small mb-0">No tenés permiso para ver reservas.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2"><i class="bi bi-lightning-charge"></i> Acciones</h2>
+        {% if habitacion.estado == 'Limpieza' %}
+          {% if perms.reservas.view_tarealimpieza %}
+          <a href="{% url 'limpieza_lista' %}" class="btn btn-sm btn-outline-secondary w-100 mb-2">
+            <i class="bi bi-bucket"></i> Ver en el módulo de Limpieza
+          </a>
+          {% endif %}
+          {% if perms.reservas.change_habitacion %}
+          <form method="post" action="{% url 'habitacion_finalizar_limpieza' habitacion.codigo %}" class="mb-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success w-100">
+              <i class="bi bi-check2-circle"></i> Marcar limpieza terminada (→ Disponible)
+            </button>
+          </form>
+          {% endif %}
+        {% endif %}
+
+        {% if reserva_actual and perms.reservas.change_reserva %}
+          {% if reserva_actual.puede_hacer_checkin %}
+          <a href="{% url 'checkin_lista' %}" class="btn btn-sm btn-outline-success w-100 mb-2">
+            <i class="bi bi-box-arrow-in-right"></i> Ir a registrar ingreso
+          </a>
+          {% elif reserva_actual.puede_hacer_checkout %}
+          <a href="{% url 'checkout_lista' %}" class="btn btn-sm btn-outline-primary w-100 mb-2">
+            <i class="bi bi-box-arrow-right"></i> Ir a registrar salida
+          </a>
+          {% endif %}
+        {% endif %}
+
+        {% if perms.reservas.add_incidencia %}
+        <a href="{% url 'mantenimiento_lista' %}" class="btn btn-sm btn-outline-warning w-100 mb-2">
+          <i class="bi bi-tools"></i> Reportar un problema
+        </a>
+        {% endif %}
+
+        <p class="text-muted small mb-0">
+          Otros cambios de estado se hacen desde
+          {% if perms.reservas.change_habitacion %}
+          <a href="/admin/reservas/habitacion/{{ habitacion.codigo|urlencode }}/change/">el admin</a>.
+          {% else %}
+          el admin (no tenés permiso para editar).
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    {% if incidencias_abiertas %}
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body">
+        <h2 class="h6 mb-2"><i class="bi bi-exclamation-triangle"></i> Incidencias abiertas</h2>
+        <ul class="list-unstyled small mb-0">
+          {% for inc in incidencias_abiertas %}
+          <li class="mb-1">
+            <span class="badge text-bg-info">{{ inc.estado }}</span>
+            {{ inc.descripcion|truncatechars:50 }}
+          </li>
+          {% endfor %}
+        </ul>
+        <a href="{% url 'mantenimiento_lista' %}" class="small">Ver en Mantenimiento →</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

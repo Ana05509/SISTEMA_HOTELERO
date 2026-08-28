@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard — Sistema Hotelero{% endblock %}
+
+{% block extra_css %}
+<style>
+  .stat-card { display: flex; align-items: center; gap: .9rem; }
+  .stat-icon {
+    width: 48px; height: 48px; border-radius: 12px; display: flex;
+    align-items: center; justify-content: center; font-size: 1.3rem; color: #fff; flex-shrink: 0;
+  }
+  .stat-icon.bg-indigo { background: #6366f1; }
+  .stat-icon.bg-teal { background: #14b8a6; }
+  .stat-icon.bg-orange { background: #f59e0b; }
+  .stat-icon.bg-green { background: #22c55e; }
+  .stat-icon.bg-red { background: #ef4444; }
+  .stat-icon.bg-purple { background: #8b5cf6; }
+  .stat-icon.bg-gold { background: #eab308; }
+  .stat-label { font-size: .78rem; color: #6c757d; }
+  .stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+
+  .accesos-rapidos {
+    display: flex; flex-direction: column; align-items: center; gap: .4rem;
+    padding: .9rem .5rem; border-radius: 10px; background: #f4f6f9; text-decoration: none;
+    color: #1e1b34; transition: background .15s; height: 100%;
+  }
+  .accesos-rapidos:hover { background: #eef0ff; color: #4f46e5; }
+  .accesos-rapidos i { font-size: 1.4rem; color: #6366f1; }
+  .accesos-rapidos span { font-size: .75rem; font-weight: 500; text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h1>
+
+{% if perms.reservas.view_habitacion or perms.reservas.view_reserva or perms.reservas.change_reserva or perms.reservas.view_tarealimpieza or perms.reservas.view_incidencia %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <h2 class="h6 mb-3"><i class="bi bi-lightning-charge"></i> Accesos rápidos</h2>
+    <div class="row g-2 text-center">
+      {% if perms.reservas.view_habitacion %}
+      <div class="col-4 col-md-2">
+        <a href="{% url 'habitaciones_grid' %}" class="accesos-rapidos">
+          <i class="bi bi-door-closed"></i><span>Habitaciones</span>
+        </a>
+      </div>
+      {% endif %}
+      {% if perms.reservas.add_reserva %}
+      <div class="col-4 col-md-2">
+        <a href="{% url 'reserva_nueva' %}" class="accesos-rapidos">
+          <i class="bi bi-journal-plus"></i><span>Nueva reserva</span>
+        </a>
+      </div>
+      {% endif %}
+      {% if perms.reservas.change_reserva %}
+      <div class="col-4 col-md-2">
+        <a href="{% url 'checkin_lista' %}" class="accesos-rapidos">
+          <i class="bi bi-box-arrow-in-right"></i><span>Ingreso</span>
+        </a>
+      </div>
+      <div class="col-4 col-md-2">
+        <a href="{% url 'checkout_lista' %}" class="accesos-rapidos">
+          <i class="bi bi-box-arrow-right"></i><span>Salida</span>
+        </a>
+      </div>
+      {% endif %}
+      {% if perms.reservas.view_tarealimpieza %}
+      <div class="col-4 col-md-2">
+        <a href="{% url 'limpieza_lista' %}" class="accesos-rapidos">
+          <i class="bi bi-bucket"></i><span>Limpieza</span>
+        </a>
+      </div>
+      {% endif %}
+      {% if perms.reservas.view_incidencia %}
+      <div class="col-4 col-md-2">
+        <a href="{% url 'mantenimiento_lista' %}" class="accesos-rapidos">
+          <i class="bi bi-tools"></i><span>Mantenimiento</span>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if perms.reservas.view_habitacion %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body stat-card">
+        <div class="stat-icon bg-indigo"><i class="bi bi-building"></i></div>
+        <div>
+          <div class="stat-label">Habitaciones totales</div>
+          <div class="stat-value">{{ habitaciones_total }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body stat-card">
+        <div class="stat-icon bg-green"><i class="bi bi-door-open"></i></div>
+        <div>
+          <div class="stat-label">Disponibles</div>
+          <div class="stat-value">{{ habitaciones_disponibles }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body stat-card">
+        <div class="stat-icon bg-red"><i class="bi bi-door-closed-fill"></i></div>
+        <div>
+          <div class="stat-label">Ocupadas</div>
+          <div class="stat-value">{{ habitaciones_ocupadas }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body stat-card">
+        <div class="stat-icon bg-orange"><i class="bi bi-tools"></i></div>
+        <div>
+          <div class="stat-label">En mantenimiento</div>
+          <div class="stat-value">{{ habitaciones_mantenimiento }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  {% if perms.reservas.view_reserva %}
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body stat-card">
+        <div class="stat-icon bg-teal"><i class="bi bi-box-arrow-in-right"></i></div>
+        <div>
+          <div class="stat-label">Llegadas de huéspedes hoy</div>
+          <div class="stat-value">{{ checkins_hoy }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body stat-card">
+        <div class="stat-icon bg-purple"><i class="bi bi-box-arrow-right"></i></div>
+        <div>
+          <div class="stat-label">Salidas de huéspedes hoy</div>
+          <div class="stat-value">{{ checkouts_hoy }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if perms.reservas.view_factura %}
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body stat-card">
+        <div class="stat-icon bg-gold"><i class="bi bi-cash-coin"></i></div>
+        <div>
+          <div class="stat-label">Ingresos del mes</div>
+          <div class="stat-value">${{ ingresos_mes }}</div>
+          <div class="text-muted small">Hoy: ${{ ingresos_dia }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  {% if perms.reservas.view_habitacion %}
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-pie-chart"></i> Ocupación actual</h2>
+        <canvas id="grafico-ocupacion" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if perms.reservas.view_reserva %}
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-bar-chart"></i> Reservas de los últimos 7 días</h2>
+        <canvas id="grafico-reservas" height="150"></canvas>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-calendar-event"></i> Próximas reservas</h2>
+        {% if proximas_reservas %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr class="text-muted small">
+                <th>Huésped</th>
+                <th>Habitación</th>
+                <th>Ingreso</th>
+                <th>Salida</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in proximas_reservas %}
+              <tr>
+                <td>{{ r.cliente.nombre }} {{ r.cliente.apellido }}</td>
+                <td>{{ r.habitacion.numero }}</td>
+                <td>{{ r.fecha_ingreso|date:"d/m/Y" }}</td>
+                <td>{{ r.fecha_salida|date:"d/m/Y" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No hay reservas próximas registradas.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if perms.reservas.view_habitacion or perms.reservas.view_reserva %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endif %}
+{% if perms.reservas.view_habitacion %}
+<script>
+  new Chart(document.getElementById('grafico-ocupacion'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Disponibles', 'Ocupadas', 'Mantenimiento'],
+      datasets: [{
+        data: [{{ habitaciones_disponibles }}, {{ habitaciones_ocupadas }}, {{ habitaciones_mantenimiento }}],
+        backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
+      }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+</script>
+{% endif %}
+{% if perms.reservas.view_reserva %}
+<script>
+  new Chart(document.getElementById('grafico-reservas'), {
+    type: 'bar',
+    data: {
+      labels: {{ grafico_dias|safe }},
+      datasets: [
+        { label: 'Confirmadas', data: {{ grafico_confirmadas }}, backgroundColor: '#6366f1' },
+        { label: 'Canceladas', data: {{ grafico_canceladas }}, backgroundColor: '#ef4444' },
+      ]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block titulo %}Factura #{{ factura.id }} — Sistema Hotelero{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Al imprimir (botón "Imprimir" de esta página) solo se ve la factura,
+     sin el sidebar/topbar/botones de acción de la app. */
+  @media print {
+    .topbar, .sidebar, .no-imprimir { display: none !important; }
+    .contenido { margin: 0 !important; padding: 0 !important; }
+    body { background: #fff !important; }
+    .card { box-shadow: none !important; border: 1px solid #dee2e6 !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-imprimir">
+  <a href="{% url 'reserva_detalle' reserva.id %}" class="text-decoration-none small text-muted">
+    <i class="bi bi-chevron-left"></i> Volver
+  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'factura_pdf' factura.id %}" target="_blank" class="btn btn-primary btn-sm">
+      <i class="bi bi-download"></i> Descargar PDF
+    </a>
+    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+      <i class="bi bi-printer"></i> Imprimir
+    </button>
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-three-dots"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+          <form method="post" action="{% url 'factura_reenviar_correo' factura.id %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item"><i class="bi bi-envelope"></i> Reenviar por correo</button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h1 class="h3 mb-1"><i class="bi bi-receipt"></i> Factura</h1>
+    <div class="d-flex align-items-center gap-2">
+      <span class="h5 mb-0 text-muted">#FA-{{ factura.id|stringformat:"06d" }}</span>
+      {% if reserva.saldo_pendiente > 0 %}
+      <span class="badge text-bg-warning">PENDIENTE</span>
+      {% else %}
+      <span class="badge text-bg-success">PAGADA</span>
+      {% endif %}
+      <span class="text-muted small ms-2">{{ factura.fecha|date:"d/m/Y" }}</span>
+    </div>
+  </div>
+  <div class="text-end">
+    {% if config_hotel.logo %}
+    <img src="{{ config_hotel.logo.url }}" alt="{{ config_hotel.nombre_hotel }}" style="max-height: 48px;" class="mb-1">
+    {% else %}
+    <div class="fw-semibold">{{ config_hotel.nombre_hotel }}</div>
+    {% endif %}
+    {% if config_hotel.direccion %}<div class="text-muted small">{{ config_hotel.direccion }}</div>{% endif %}
+    {% if config_hotel.telefono %}<div class="text-muted small">{{ config_hotel.telefono }}</div>{% endif %}
+    {% if config_hotel.ruc %}<div class="text-muted small">RUC: {{ config_hotel.ruc }}</div>{% endif %}
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <h2 class="h6 text-muted text-uppercase small mb-3">Información del huésped</h2>
+        <dl class="row mb-0 small">
+          <dt class="col-5">Nombre</dt><dd class="col-7">{{ reserva.cliente.nombre_completo }}</dd>
+          <dt class="col-5">Documento</dt><dd class="col-7">{{ reserva.cliente.get_tipo_documento_display }} {{ reserva.cliente.cedula }}</dd>
+          <dt class="col-5">Teléfono</dt><dd class="col-7">{{ reserva.cliente.telefono }}</dd>
+          <dt class="col-5">Email</dt><dd class="col-7">{{ reserva.cliente.correo }}</dd>
+        </dl>
+      </div>
+      <div class="col-md-6">
+        <h2 class="h6 text-muted text-uppercase small mb-3">Información de la estancia</h2>
+        <dl class="row mb-0 small">
+          <dt class="col-5">Reserva</dt><dd class="col-7"><a href="{% url 'reserva_detalle' reserva.id %}">#{{ reserva.id }}</a></dd>
+          <dt class="col-5">Habitación</dt><dd class="col-7">{{ reserva.habitacion.numero }} — {{ reserva.habitacion.tipo.nombre }}</dd>
+          <dt class="col-5">Ingreso</dt><dd class="col-7">{{ reserva.fecha_ingreso|date:"d/m/Y" }}</dd>
+          <dt class="col-5">Salida</dt><dd class="col-7">{{ reserva.fecha_salida|date:"d/m/Y" }}</dd>
+          <dt class="col-5">Noches</dt><dd class="col-7">{{ reserva.duracion }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr class="text-muted small text-uppercase">
+          <th>Descripción</th>
+          <th class="text-end">Cant.</th>
+          <th class="text-end">P. unitario</th>
+          <th class="text-end">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Alojamiento — {{ reserva.habitacion.tipo.nombre }} ({{ reserva.duracion }} noche{{ reserva.duracion|pluralize }})</td>
+          <td class="text-end">1</td>
+          <td class="text-end">${{ reserva.habitacion.precio }}</td>
+          <td class="text-end">${{ reserva.costo }}</td>
+        </tr>
+        {% for c in consumos %}
+        <tr>
+          <td>{{ c.servicio.nombre }}</td>
+          <td class="text-end">{{ c.cantidad }}</td>
+          <td class="text-end">${{ c.precio_unitario }}</td>
+          <td class="text-end">${{ c.subtotal }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h6 text-muted text-uppercase small mb-3">Información de pago</h2>
+        {% if pagos %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr class="text-muted small">
+                <th>Método</th><th>Referencia</th><th>Fecha</th><th class="text-end">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in pagos %}
+              <tr>
+                <td>{{ p.get_metodo_display }}</td>
+                <td>{{ p.referencia|default:"—" }}</td>
+                <td>{{ p.fecha|date:"d/m/Y H:i" }}</td>
+                <td class="text-end">${{ p.monto }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">Todavía no se registraron pagos para esta reserva.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-7">Subtotal</dt>
+          <dd class="col-5 text-end">${{ factura.subtotal }}</dd>
+          <dt class="col-7">IVA ({{ factura.porcentaje_iva }}%)</dt>
+          <dd class="col-5 text-end">${{ factura.iva_monto }}</dd>
+          <dt class="col-7 fw-semibold border-top pt-2 mt-2">Total</dt>
+          <dd class="col-5 text-end border-top pt-2 mt-2 fw-semibold">${{ factura.total }}</dd>
+          <dt class="col-7">Pagado</dt>
+          <dd class="col-5 text-end">${{ reserva.total_pagado }}</dd>
+          <dt class="col-7 fw-semibold border-top pt-2 mt-2">Saldo</dt>
+          <dd class="col-5 text-end border-top pt-2 mt-2 fw-semibold {% if reserva.saldo_pendiente > 0 %}text-danger{% else %}text-success{% endif %}">
+            {% if reserva.saldo_pendiente > 0 %}${{ reserva.saldo_pendiente }}{% else %}$0.00{% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="text-center text-muted small py-2">Gracias por su preferencia.</p>
+{% endblock %}

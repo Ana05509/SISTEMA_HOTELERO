@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-sliders"></i> Configuración del hotel</h1>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        {% if config.logo %}
+        <img src="{{ config.logo.url }}" alt="Logo del hotel" class="img-fluid mb-3" style="max-height: 140px;">
+        {% else %}
+        <div class="text-muted py-4 mb-2">
+          <i class="bi bi-building" style="font-size: 3rem;"></i>
+          <p class="small mb-0 mt-2">Sin logo cargado</p>
+        </div>
+        {% endif %}
+        <h2 class="h5 mb-0">{{ config.nombre_hotel }}</h2>
+        {% if config.direccion %}<p class="text-muted small mb-0">{{ config.direccion }}</p>{% endif %}
+        {% if config.telefono %}<p class="text-muted small mb-0">{{ config.telefono }}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        {% if puede_editar %}
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.nombre_hotel.label }}</label>
+              {{ form.nombre_hotel }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.telefono.label }}</label>
+              {{ form.telefono }}
+            </div>
+            <div class="col-md-8">
+              <label class="form-label small mb-1">{{ form.direccion.label }}</label>
+              {{ form.direccion }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small mb-1">{{ form.ruc.label }}</label>
+              {{ form.ruc }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small mb-1">Logo</label>
+              {{ form.logo }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small mb-1">{{ form.moneda.label }}</label>
+              {{ form.moneda }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small mb-1">{{ form.iva_porcentaje.label }}</label>
+              {{ form.iva_porcentaje }}
+              <div class="form-text">{{ form.iva_porcentaje.help_text }}</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small mb-1">Hora de ingreso por defecto</label>
+              {{ form.hora_checkin_default }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small mb-1">Hora de salida por defecto</label>
+              {{ form.hora_checkout_default }}
+            </div>
+            <div class="col-12">
+              <label class="form-label small mb-1">Política de cancelación</label>
+              {{ form.politica_cancelacion }}
+              <div class="form-text">{{ form.politica_cancelacion.help_text }}</div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check-lg"></i> Guardar cambios</button>
+        </form>
+        {% else %}
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Nombre</dt><dd class="col-sm-8">{{ config.nombre_hotel }}</dd>
+          <dt class="col-sm-4">Dirección</dt><dd class="col-sm-8">{{ config.direccion|default:"—" }}</dd>
+          <dt class="col-sm-4">Teléfono</dt><dd class="col-sm-8">{{ config.telefono|default:"—" }}</dd>
+          <dt class="col-sm-4">RUC</dt><dd class="col-sm-8">{{ config.ruc|default:"—" }}</dd>
+          <dt class="col-sm-4">Moneda</dt><dd class="col-sm-8">{{ config.moneda }}</dd>
+          <dt class="col-sm-4">IVA</dt><dd class="col-sm-8">{{ config.iva_porcentaje }}%</dd>
+          <dt class="col-sm-4">Hora de ingreso por defecto</dt><dd class="col-sm-8">{{ config.hora_checkin_default|time:"H:i" }}</dd>
+          <dt class="col-sm-4">Hora de salida por defecto</dt><dd class="col-sm-8">{{ config.hora_checkout_default|time:"H:i" }}</dd>
+          <dt class="col-sm-4">Política de cancelación</dt><dd class="col-sm-8">{{ config.politica_cancelacion|default:"—"|linebreaksbr }}</dd>
+        </dl>
+        <p class="text-muted small mt-3 mb-0">Solo un administrador puede editar esta configuración.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

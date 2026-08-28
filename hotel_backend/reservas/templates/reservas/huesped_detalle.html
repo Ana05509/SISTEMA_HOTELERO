@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load reservas_extras %}
+{% block titulo %}{{ huesped.nombre_completo }} — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<nav class="mb-3 small">
+  <a href="{% url 'huespedes_lista' %}"><i class="bi bi-arrow-left"></i> Volver a huéspedes</a>
+</nav>
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h1 class="h4"><i class="bi bi-person-badge"></i> {{ huesped.nombre_completo }}</h1>
+        <dl class="row mb-0 mt-3">
+          <dt class="col-sm-5">Documento</dt>
+          <dd class="col-sm-7">{{ huesped.get_tipo_documento_display }}: {{ huesped.cedula }}</dd>
+
+          <dt class="col-sm-5">Teléfono</dt>
+          <dd class="col-sm-7">{{ huesped.telefono }}</dd>
+
+          <dt class="col-sm-5">Correo</dt>
+          <dd class="col-sm-7">{{ huesped.correo }}</dd>
+
+          <dt class="col-sm-5">Dirección</dt>
+          <dd class="col-sm-7">{{ huesped.direccion|default:"—" }}</dd>
+
+          <dt class="col-sm-5">Nacionalidad</dt>
+          <dd class="col-sm-7">{{ huesped.nacionalidad|default:"—" }}</dd>
+
+          {% if huesped.observaciones %}
+          <dt class="col-sm-5">Observaciones</dt>
+          <dd class="col-sm-7">{{ huesped.observaciones }}</dd>
+          {% endif %}
+        </dl>
+
+        {% if perms.reservas.change_cliente %}
+        <a href="/admin/reservas/cliente/{{ huesped.cedula|urlencode }}/change/" class="btn btn-sm btn-outline-secondary mt-2">
+          <i class="bi bi-pencil"></i> Editar
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-clock-history"></i> Historial de reservas</h2>
+        {% if reservas %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr class="text-muted small">
+                <th>Habitación</th>
+                <th>Ingreso</th>
+                <th>Salida</th>
+                <th>Noches</th>
+                <th>Costo</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in reservas %}
+              <tr>
+                <td><a href="{% url 'reserva_detalle' r.id %}">{{ r.habitacion.numero }}</a></td>
+                <td>{{ r.fecha_ingreso|date:"d/m/Y" }}</td>
+                <td>{{ r.fecha_salida|date:"d/m/Y" }}</td>
+                <td>{{ r.duracion }}</td>
+                <td>${{ r.costo }}</td>
+                <td><span class="badge text-bg-{{ r.estado_display|estado_reserva_badge }}">{{ r.estado_display }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">Este huésped todavía no tiene reservas registradas.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block titulo %}Salida de huéspedes — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-box-arrow-right"></i> Salida de huéspedes</h1>
+<p class="text-muted small mb-3">Huéspedes actualmente alojados (con el ingreso ya registrado).</p>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr class="text-muted small">
+          <th>#</th>
+          <th>Huésped</th>
+          <th>Habitación</th>
+          <th>Ingreso</th>
+          <th>Salida planeada</th>
+          <th>Total (con consumos)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservas %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td><a href="{% url 'huesped_detalle' r.cliente.cedula %}">{{ r.cliente.nombre_completo }}</a></td>
+          <td><a href="{% url 'habitacion_detalle' r.habitacion.codigo %}">{{ r.habitacion.numero }}</a></td>
+          <td>{{ r.check_in_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ r.fecha_salida|date:"d/m/Y" }}</td>
+          <td>${{ r.total_estadia }}</td>
+          <td class="text-end">
+            <a href="{% url 'reserva_detalle' r.id %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-cup-hot"></i> Consumos</a>
+            <form method="post" action="{% url 'checkout_confirmar' r.id %}" class="d-inline"
+                  onsubmit="return confirm('¿Registrar la salida de {{ r.cliente.nombre_completo }}? Se generará la factura.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-primary">
+                <i class="bi bi-box-arrow-right"></i> Registrar salida
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No hay huéspedes alojados en este momento.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

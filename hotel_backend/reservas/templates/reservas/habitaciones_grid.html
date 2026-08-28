@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block titulo %}Habitaciones — Sistema Hotelero{% endblock %}
+
+{% block extra_css %}
+<style>
+  .celda-habitacion {
+    display: block; border-radius: .5rem; padding: .75rem; color: #fff; text-decoration: none;
+    min-height: 72px; transition: transform .1s ease-in-out;
+  }
+  .celda-habitacion:hover { transform: scale(1.03); color: #fff; }
+  .celda-habitacion .numero { font-size: 1.1rem; font-weight: 700; }
+  .celda-habitacion .estado { font-size: .75rem; opacity: .9; }
+
+  .estado-disponible { background: #198754; }
+  .estado-reservada { background: #0d6efd; }
+  .estado-ocupada { background: #dc3545; }
+  .estado-limpieza { background: #6f42c1; }
+  .estado-mantenimiento { background: #ffc107; color: #333 !important; }
+  .estado-fuera-de-servicio { background: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0"><i class="bi bi-door-closed"></i> Habitaciones</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'precios_habitaciones' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-cash-coin"></i> Precios
+    </a>
+    {% if perms.reservas.add_habitacion %}
+    <a href="/admin/reservas/habitacion/add/" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg"></i> Nueva habitación
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-3 mb-4 small">
+  <span><span class="badge estado-disponible">&nbsp;</span> Disponible</span>
+  <span><span class="badge estado-reservada">&nbsp;</span> Reservada</span>
+  <span><span class="badge estado-ocupada">&nbsp;</span> Ocupada</span>
+  <span><span class="badge estado-limpieza">&nbsp;</span> Limpieza</span>
+  <span><span class="badge estado-mantenimiento">&nbsp;</span> Mantenimiento</span>
+  <span><span class="badge estado-fuera-de-servicio">&nbsp;</span> Fuera de servicio</span>
+</div>
+
+{% if pisos %}
+  {% for piso, lista in pisos %}
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+      <h2 class="h6 mb-3">Piso: {{ piso }}</h2>
+      <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-2">
+        {% for h in lista %}
+        <div class="col">
+          <a href="{% url 'habitacion_detalle' h.codigo %}" class="celda-habitacion estado-{{ h.estado|slugify }}">
+            <div class="numero">{{ h.numero }}</div>
+            <div class="estado">{{ h.tipo.nombre }}</div>
+            <div class="estado">{{ h.estado }}</div>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-body text-center text-muted py-5">
+      Todavía no hay habitaciones cargadas.
+      {% if perms.reservas.add_habitacion %}
+      <br><a href="/admin/reservas/habitacion/add/">Cargar la primera</a>.
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

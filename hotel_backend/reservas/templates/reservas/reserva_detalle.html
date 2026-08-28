@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% load reservas_extras %}
+{% block titulo %}Reserva #{{ reserva.id }} — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<nav class="mb-3 small">
+  <a href="{% url 'reservas_lista' %}"><i class="bi bi-arrow-left"></i> Volver a reservas</a>
+</nav>
+
+<div class="row g-3">
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <h1 class="h4"><i class="bi bi-journal-bookmark"></i> Reserva #{{ reserva.id }}</h1>
+          <span class="badge text-bg-{{ reserva.estado_display|estado_reserva_badge }}">{{ reserva.estado_display }}</span>
+        </div>
+        <dl class="row mb-0 mt-3">
+          <dt class="col-sm-4">Huésped</dt>
+          <dd class="col-sm-8"><a href="{% url 'huesped_detalle' reserva.cliente.cedula %}">{{ reserva.cliente.nombre_completo }}</a></dd>
+
+          <dt class="col-sm-4">Habitación</dt>
+          <dd class="col-sm-8"><a href="{% url 'habitacion_detalle' reserva.habitacion.codigo %}">{{ reserva.habitacion.numero }}</a> ({{ reserva.habitacion.tipo.nombre }})</dd>
+
+          <dt class="col-sm-4">Ingreso</dt>
+          <dd class="col-sm-8">{{ reserva.fecha_ingreso|date:"d/m/Y" }}{% if reserva.check_in_at %} — ingreso registrado {{ reserva.check_in_at|date:"d/m/Y H:i" }}{% endif %}</dd>
+
+          <dt class="col-sm-4">Salida</dt>
+          <dd class="col-sm-8">{{ reserva.fecha_salida|date:"d/m/Y" }}{% if reserva.check_out_at %} — salida registrada {{ reserva.check_out_at|date:"d/m/Y H:i" }}{% endif %}</dd>
+
+          <dt class="col-sm-4">Alojamiento</dt>
+          <dd class="col-sm-8">{{ reserva.duracion }} noche(s) × ${{ reserva.habitacion.precio }} = ${{ reserva.costo }}</dd>
+
+          {% if consumos %}
+          <dt class="col-sm-4">Consumos</dt>
+          <dd class="col-sm-8">${{ reserva.total_consumos }}</dd>
+          {% endif %}
+
+          <dt class="col-sm-4">Subtotal</dt>
+          <dd class="col-sm-8">${{ reserva.total_estadia }}</dd>
+
+          <dt class="col-sm-4">IVA</dt>
+          <dd class="col-sm-8">${{ reserva.iva }}</dd>
+
+          <dt class="col-sm-4"><strong>Total</strong></dt>
+          <dd class="col-sm-8"><strong>${{ reserva.total_con_iva }}</strong></dd>
+
+          {% if pagos or pago_form %}
+          <dt class="col-sm-4">Pagado</dt>
+          <dd class="col-sm-8">${{ reserva.total_pagado }}</dd>
+
+          <dt class="col-sm-4">Pendiente</dt>
+          <dd class="col-sm-8">
+            {% if reserva.saldo_pendiente > 0 %}
+            <span class="text-danger fw-semibold">${{ reserva.saldo_pendiente }}</span>
+            {% else %}
+            <span class="text-success fw-semibold">$0.00 — saldado</span>
+            {% endif %}
+          </dd>
+          {% endif %}
+        </dl>
+
+        {% if reserva.factura %}
+        <a href="{% url 'factura_detalle' reserva.factura.id %}" class="btn btn-sm btn-outline-secondary mt-2">
+          <i class="bi bi-receipt"></i> Ver factura
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-cup-hot"></i> Consumos</h2>
+
+        {% if consumos %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr class="text-muted small">
+                <th>Servicio</th>
+                <th>Cant.</th>
+                <th>P. unitario</th>
+                <th>Subtotal</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in consumos %}
+              <tr>
+                <td>{{ c.servicio.nombre }}</td>
+                <td>{{ c.cantidad }}</td>
+                <td>${{ c.precio_unitario }}</td>
+                <td>${{ c.subtotal }}</td>
+                <td>{{ c.fecha|date:"d/m/Y H:i" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted small">Todavía no hay consumos registrados en esta estadía.</p>
+        {% endif %}
+
+        {% if form %}
+        <form method="post" action="{% url 'consumo_agregar' reserva.id %}" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <div class="col-auto">
+            <label class="form-label small mb-0">{{ form.servicio.label }}</label>
+            {{ form.servicio }}
+          </div>
+          <div class="col-auto">
+            <label class="form-label small mb-0">{{ form.cantidad.label }}</label>
+            {{ form.cantidad }}
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Agregar consumo</button>
+          </div>
+        </form>
+        {% elif not reserva.esta_alojado %}
+        <p class="text-muted small mb-0">Los consumos solo se pueden agregar durante la estadía (con el ingreso del huésped ya registrado).</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-credit-card"></i> Pagos</h2>
+
+        {% if pagos %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr class="text-muted small">
+                <th>Monto</th>
+                <th>Método</th>
+                <th>Referencia</th>
+                <th>Fecha</th>
+                <th>Registrado por</th>
+                <th>Observación</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in pagos %}
+              <tr>
+                <td>${{ p.monto }}</td>
+                <td>{{ p.get_metodo_display }}</td>
+                <td>{{ p.referencia|default:"—" }}</td>
+                <td>{{ p.fecha|date:"d/m/Y H:i" }}</td>
+                <td>{{ p.usuario|default:"—" }}</td>
+                <td>{{ p.observacion|default:"—" }}</td>
+                <td>
+                  <a href="{% url 'comprobante_pago_pdf' p.id %}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Descargar comprobante">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted small">Todavía no hay pagos registrados.</p>
+        {% endif %}
+
+        {% if pago_form %}
+        <form method="post" action="{% url 'pago_agregar' reserva.id %}" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <div class="col-auto">
+            <label class="form-label small mb-0">{{ pago_form.monto.label }}</label>
+            {{ pago_form.monto }}
+          </div>
+          <div class="col-auto">
+            <label class="form-label small mb-0">{{ pago_form.metodo.label }}</label>
+            {{ pago_form.metodo }}
+          </div>
+          <div class="col-auto" id="grupo-referencia" style="display: none;">
+            <label class="form-label small mb-0">{{ pago_form.referencia.label }}</label>
+            {{ pago_form.referencia }}
+            {% for error in pago_form.referencia.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="col-auto">
+            <label class="form-label small mb-0">{{ pago_form.observacion.label }}</label>
+            {{ pago_form.observacion }}
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Registrar pago</button>
+          </div>
+        </form>
+        <script>
+          (function () {
+            var metodo = document.getElementById('id_pago_metodo');
+            var grupo = document.getElementById('grupo-referencia');
+            if (!metodo || !grupo) return;
+            var conReferencia = ['Transferencia', 'Tarjeta'];
+            function actualizar() {
+              grupo.style.display = conReferencia.includes(metodo.value) ? '' : 'none';
+            }
+            metodo.addEventListener('change', actualizar);
+            actualizar();
+          })();
+        </script>
+        {% elif reserva.saldo_pendiente <= 0 %}
+        <p class="text-muted small mb-0">La estadía ya está saldada.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

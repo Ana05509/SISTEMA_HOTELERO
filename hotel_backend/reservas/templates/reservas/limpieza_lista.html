@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}Limpieza — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-bucket"></i> Limpieza</h1>
+<p class="text-muted small mb-3">Habitaciones pendientes de limpiar o en curso.</p>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr class="text-muted small">
+          <th>Habitación</th>
+          <th>Estado</th>
+          <th>Responsable</th>
+          <th>Creada</th>
+          <th>Iniciada</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tareas %}
+        <tr>
+          <td><a href="{% url 'habitacion_detalle' t.habitacion.codigo %}">{{ t.habitacion.numero }}</a></td>
+          <td><span class="badge text-bg-{% if t.estado == 'Pendiente' %}secondary{% else %}info{% endif %}">{{ t.estado }}</span></td>
+          <td>{{ t.responsable|default:"—" }}</td>
+          <td>{{ t.creada_en|date:"d/m/Y H:i" }}</td>
+          <td>{{ t.iniciada_en|date:"d/m/Y H:i"|default:"—" }}</td>
+          <td class="text-end">
+            {% if t.estado == 'Pendiente' %}
+            <form method="post" action="{% url 'limpieza_iniciar' t.id %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-play-fill"></i> Iniciar</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'limpieza_completar' t.id %}" class="d-inline-flex gap-1 align-items-center">
+              {% csrf_token %}
+              <input type="text" name="observaciones" class="form-control form-control-sm" placeholder="Observación (opcional)" style="width: 180px;">
+              <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check2-circle"></i> Completar</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No hay tareas de limpieza pendientes. 🎉</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

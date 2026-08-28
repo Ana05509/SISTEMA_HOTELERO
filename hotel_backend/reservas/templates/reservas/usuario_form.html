@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block titulo %}{% if modo == 'crear' %}Nuevo usuario{% else %}Editar usuario{% endif %} — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<nav class="mb-3 small">
+  <a href="{% url 'usuarios_lista' %}"><i class="bi bi-arrow-left"></i> Volver a usuarios</a>
+</nav>
+
+<h1 class="h3 mb-4">
+  <i class="bi bi-person-{% if modo == 'crear' %}plus{% else %}gear{% endif %}"></i>
+  {% if modo == 'crear' %}Nuevo usuario{% else %}Editar {{ usuario_editado.username }}{% endif %}
+</h1>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="row g-3">
+            {% if modo == 'crear' %}
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.username.label }}</label>
+              {{ form.username }}
+              {% for error in form.username.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.rol.label }}</label>
+              {{ form.rol }}
+            </div>
+            {% endif %}
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.first_name.label }}</label>
+              {{ form.first_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.last_name.label }}</label>
+              {{ form.last_name }}
+            </div>
+            <div class="col-md-{% if modo == 'crear' %}12{% else %}6{% endif %}">
+              <label class="form-label small mb-1">{{ form.email.label }}</label>
+              {{ form.email }}
+            </div>
+            {% if modo == 'editar' %}
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.rol.label }}</label>
+              {{ form.rol }}
+              {% if usuario_editado.is_superuser %}
+              <div class="form-text">Es superusuario — tiene todos los permisos sin importar el rol asignado.</div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                {{ form.activo }}
+                <label class="form-check-label" for="{{ form.activo.id_for_label }}">{{ form.activo.label }}</label>
+              </div>
+            </div>
+            {% endif %}
+            {% if modo == 'crear' %}
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.password1.label }}</label>
+              {{ form.password1 }}
+              {% for error in form.password1.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small mb-1">{{ form.password2.label }}</label>
+              {{ form.password2 }}
+              {% for error in form.password2.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary mt-3">
+            <i class="bi bi-check-lg"></i> {% if modo == 'crear' %}Crear usuario{% else %}Guardar cambios{% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% if modo == 'editar' %}
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 mb-3"><i class="bi bi-key"></i> Restablecer contraseña</h2>
+        <form method="post" action="{% url 'usuario_cambiar_password' usuario_editado.id %}">
+          {% csrf_token %}
+          <div class="mb-2">
+            <label class="form-label small mb-1">{{ password_form.password1.label }}</label>
+            {{ password_form.password1 }}
+          </div>
+          <div class="mb-2">
+            <label class="form-label small mb-1">{{ password_form.password2.label }}</label>
+            {{ password_form.password2 }}
+          </div>
+          <button type="submit" class="btn btn-outline-secondary btn-sm mt-1"><i class="bi bi-key"></i> Actualizar contraseña</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

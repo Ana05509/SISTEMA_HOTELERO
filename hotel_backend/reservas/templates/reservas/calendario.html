@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load reservas_extras %}
+{% block titulo %}Calendario — Sistema Hotelero{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* El calendario entero (encabezado + leyenda + grilla) ocupa exactamente
+     lo que queda de pantalla debajo de la barra superior — así entran
+     todas las habitaciones y todos los días sin necesitar scroll en una
+     pantalla de escritorio/tablet normal. Si la ventana es muy chica para
+     que las celdas sigan siendo legibles (min-width/min-height de abajo),
+     el contenedor de la grilla vuelve a hacer scroll solo — no desaparece
+     nada, nunca queda ilegible. */
+  .calendario-wrap {
+    display: flex; flex-direction: column;
+    height: calc(100vh - 56px - 3rem); /* 56px = topbar, 3rem = padding de .contenido */
+  }
+  .calendario-cabecera { flex: 0 0 auto; }
+
+  .calendario-grid-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; border-radius: .5rem; }
+
+  .calendario-grid {
+    display: grid;
+    grid-template-columns: 5.5rem repeat({{ dias|length }}, minmax(1.6rem, 1fr));
+    grid-template-rows: auto repeat({{ filas|length }}, minmax(1.5rem, 1fr));
+    min-width: 100%;
+    height: 100%;
+  }
+
+  .g-celda { display: flex; align-items: center; justify-content: center; border: 1px solid #e9ecef; font-size: .72rem; }
+
+  .g-dia {
+    position: sticky; top: 0; z-index: 2; background: var(--sidebar-bg); color: #fff;
+    flex-direction: column; font-weight: 600; padding: .3rem 0;
+  }
+  .g-dia.g-hoy { background: var(--acento-oscuro); }
+  .g-dia.g-finde { background: #2a2650; }
+  .g-dia .dia-numero { line-height: 1.1; }
+  .g-dia .dia-nombre { font-size: .6rem; opacity: .75; font-weight: 400; }
+
+  .g-esquina { position: sticky; top: 0; left: 0; z-index: 3; background: var(--sidebar-bg); color: #fff; font-weight: 600; }
+
+  .g-habitacion {
+    position: sticky; left: 0; z-index: 1; background: #fff; justify-content: flex-start;
+    padding-left: .6rem; font-weight: 600;
+  }
+  .g-habitacion a { color: inherit; text-decoration: none; }
+  .g-habitacion a:hover { text-decoration: underline; }
+
+  .g-libre { background: #fbfbfd; }
+  .g-libre.g-finde { background: #f1f2f6; }
+  .g-hoy-col { box-shadow: inset 0 0 0 2px var(--acento); }
+
+  .g-ocupada { cursor: pointer; padding: 0; }
+  .g-ocupada a {
+    display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;
+    color: #fff; text-decoration: none; font-weight: 700; font-size: .68rem;
+  }
+  .g-ocupada a:hover { filter: brightness(1.1); }
+  .g-inicio { border-left: 2px solid rgba(0,0,0,.35) !important; }
+
+  .leyenda-punto { width: .8rem; height: .8rem; border-radius: .2rem; display: inline-block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calendario-wrap">
+  <div class="calendario-cabecera">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h1 class="h3 mb-0 text-capitalize"><i class="bi bi-calendar3"></i> Calendario — {{ mes_actual|date:"F Y" }}</h1>
+      <div class="btn-group btn-group-sm">
+        <a class="btn btn-outline-secondary" href="?anio={{ anio_anterior }}&mes={{ mes_anterior }}">
+          <i class="bi bi-chevron-left"></i> Anterior
+        </a>
+        {% if not es_mes_actual %}
+        <a class="btn btn-primary" href="{% url 'calendario' %}">Hoy</a>
+        {% endif %}
+        <a class="btn btn-outline-secondary" href="?anio={{ anio_siguiente }}&mes={{ mes_siguiente }}">
+          Siguiente <i class="bi bi-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-3 mb-2 small">
+      <span><span class="leyenda-punto text-bg-secondary"></span> Confirmada</span>
+      <span><span class="leyenda-punto text-bg-info"></span> Alojado</span>
+      <span><span class="leyenda-punto text-bg-success"></span> Completada</span>
+      <span><span class="leyenda-punto text-bg-warning"></span> No-show</span>
+      <span class="text-muted">· Pasá el mouse sobre una celda para ver huésped y fechas.</span>
+    </div>
+  </div>
+
+  <div class="calendario-grid-scroll card border-0 shadow-sm">
+    <div class="calendario-grid" role="table" aria-label="Calendario de ocupación">
+      <div class="g-celda g-esquina" role="columnheader">Habitación</div>
+      {% for d in dias %}
+      <div class="g-celda g-dia {% if d == hoy %}g-hoy{% endif %} {% if d.weekday >= 5 %}g-finde{% endif %}" role="columnheader">
+        <span class="dia-numero">{{ d|date:"d" }}</span>
+        <span class="dia-nombre">{{ d|date:"D" }}</span>
+      </div>
+      {% endfor %}
+
+      {% for habitacion, celdas in filas %}
+      <div class="g-celda g-habitacion" role="rowheader">
+        <a href="{% url 'habitacion_detalle' habitacion.codigo %}">{{ habitacion.numero }}</a>
+      </div>
+      {% for d, reserva in celdas %}
+        {% if reserva %}
+        <div class="g-celda g-ocupada text-bg-{{ reserva.estado_display|estado_reserva_badge }}
+                    {% if d == hoy %}g-hoy-col{% endif %}
+                    {% if d == reserva.fecha_ingreso %}g-inicio{% endif %}"
+             role="cell"
+             title="{{ reserva.cliente.nombre_completo }} — {{ reserva.estado_display }} ({{ reserva.fecha_ingreso|date:'d/m' }} al {{ reserva.fecha_salida|date:'d/m' }})">
+          <a href="{% url 'reserva_detalle' reserva.id %}">{{ reserva.cliente.apellido|slice:":1" }}</a>
+        </div>
+        {% else %}
+        <div class="g-celda g-libre {% if d.weekday >= 5 %}g-finde{% endif %} {% if d == hoy %}g-hoy-col{% endif %}" role="cell"></div>
+        {% endif %}
+      {% endfor %}
+      {% empty %}
+      <div class="g-celda text-muted" role="cell" style="grid-column: 1 / -1;">No hay habitaciones cargadas.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

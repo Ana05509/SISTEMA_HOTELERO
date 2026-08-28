@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load reservas_extras %}
+{% block titulo %}Reservas — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0"><i class="bi bi-journal-bookmark"></i> Reservas</h1>
+  {% if perms.reservas.add_reserva %}
+  <a href="{% url 'reserva_nueva' %}" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg"></i> Nueva reserva
+  </a>
+  {% endif %}
+</div>
+
+<ul class="nav nav-pills mb-3">
+  <li class="nav-item"><a class="nav-link {% if filtro == 'proximas' %}active{% endif %}" href="?filtro=proximas">Próximas</a></li>
+  <li class="nav-item"><a class="nav-link {% if filtro == 'hoy' %}active{% endif %}" href="?filtro=hoy">En curso hoy</a></li>
+  <li class="nav-item"><a class="nav-link {% if filtro == 'pasadas' %}active{% endif %}" href="?filtro=pasadas">Pasadas</a></li>
+  <li class="nav-item"><a class="nav-link {% if filtro == 'completadas' %}active{% endif %}" href="?filtro=completadas">Completadas</a></li>
+  <li class="nav-item"><a class="nav-link {% if filtro == 'no_show' %}active{% endif %}" href="?filtro=no_show">No-show</a></li>
+  <li class="nav-item"><a class="nav-link {% if filtro == 'canceladas' %}active{% endif %}" href="?filtro=canceladas">Canceladas</a></li>
+</ul>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr class="text-muted small">
+          <th>#</th>
+          <th>Huésped</th>
+          <th>Habitación</th>
+          <th>Ingreso</th>
+          <th>Salida</th>
+          <th>Noches</th>
+          <th>Costo</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in pagina %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td><a href="{% url 'huesped_detalle' r.cliente.cedula %}">{{ r.cliente.nombre_completo }}</a></td>
+          <td><a href="{% url 'habitacion_detalle' r.habitacion.codigo %}">{{ r.habitacion.numero }}</a></td>
+          <td>{{ r.fecha_ingreso|date:"d/m/Y" }}</td>
+          <td>{{ r.fecha_salida|date:"d/m/Y" }}</td>
+          <td>{{ r.duracion }}</td>
+          <td>${{ r.costo }}</td>
+          <td>
+            <span class="badge text-bg-{{ r.estado_display|estado_reserva_badge }}" title="{{ r.motivo_cancelacion }}">{{ r.estado_display }}</span>
+          </td>
+          <td class="text-end">
+            <a href="{% url 'reserva_detalle' r.id %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i> Ver</a>
+            {% if r.factura %}
+            <a href="{% url 'factura_detalle' r.factura.id %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-receipt"></i> Factura</a>
+            {% endif %}
+            {% if perms.reservas.delete_reserva and r.fecha_salida >= hoy and r.puede_hacer_checkin and not r.esta_cancelada %}
+            <form method="post" action="{% url 'reserva_cancelar' r.id %}" class="d-inline"
+                  onsubmit="return confirm('¿Cancelar la reserva #{{ r.id }} de {{ r.cliente.nombre_completo }}?');">
+              {% csrf_token %}
+              <input type="hidden" name="volver" value="{{ request.get_full_path }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Cancelar</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center text-muted py-4">No hay reservas en esta vista.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pagina.has_other_pages %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm">
+    {% if pagina.has_previous %}
+    <li class="page-item"><a class="page-link" href="?filtro={{ filtro }}&page={{ pagina.previous_page_number }}">Anterior</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span></li>
+    {% if pagina.has_next %}
+    <li class="page-item"><a class="page-link" href="?filtro={{ filtro }}&page={{ pagina.next_page_number }}">Siguiente</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

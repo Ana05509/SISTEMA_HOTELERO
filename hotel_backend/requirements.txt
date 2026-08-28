@@ -1,0 +1,4 @@
+Django==5.1.5
+python-dotenv==1.2.3
+reportlab==4.2.5
+pillow==11.1.0

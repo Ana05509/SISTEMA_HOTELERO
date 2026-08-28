@@ -1,13 +1,22 @@
+"""Interfaz de escritorio (Tkinter) del sistema de reservas.
+
+Es un script standalone que usa el ORM de Django directamente (requiere que
+las dependencias de hotel_backend/requirements.txt estén instaladas y que
+hotel_backend/.env exista con credenciales válidas de la base de datos).
+"""
 import tkinter as tk
 from tkinter import messagebox
 from datetime import date, timedelta
 from reportlab.pdfgen import canvas
 import os
 import django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "hotel_backend.settings")  # Reemplaza con el nombre de tu proyecto
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "hotel_backend.settings")
 django.setup()
 
 # Importar los modelos
+from django.core.exceptions import ValidationError
+from reservas import services
 from reservas.models import Cliente, Habitacion, Reserva, Factura
 
 # Funciones de la interfaz
@@ -15,7 +24,7 @@ def verificar_disponibilidad():
     habitacion_numero = entry_habitacion.get()
     try:
         habitacion = Habitacion.objects.get(numero=habitacion_numero)
-        if habitacion.estado == "Disponible":
+        if habitacion.es_disponible():
             messagebox.showinfo("Disponible", f"La habitación {habitacion_numero} está disponible.")
         else:
             messagebox.showwarning("Ocupada", f"La habitación {habitacion_numero} no está disponible (Estado: {habitacion.estado}).")
@@ -49,29 +58,25 @@ def realizar_reserva():
     try:
         cliente = Cliente.objects.get(cedula=cedula_cliente)
         habitacion = Habitacion.objects.get(numero=habitacion_numero)
-        if habitacion.estado != "Disponible":
+        if not habitacion.es_disponible():
             messagebox.showwarning("Error", f"La habitación {habitacion_numero} no está disponible.")
             return
-        
+
         fecha_ingreso = date.today()
         fecha_salida = fecha_ingreso + timedelta(days=int(dias))
 
-        # Crear la reserva
-        reserva = Reserva.objects.create(
+        # Vía el servicio compartido (reservas/services.py): valida fechas y
+        # solapamiento, y deja Habitacion.estado consistente — lo mismo que
+        # usan la web y la API.
+        reserva = services.crear_reserva(
             cliente=cliente,
-            habitacion=habitacion,  # Asegúrate de usar el nombre correcto del campo en el modelo
+            habitacion=habitacion,
             fecha_ingreso=fecha_ingreso,
-            fecha_salida=fecha_salida
+            fecha_salida=fecha_salida,
         )
-        
-        habitacion.estado = "Ocupada"
-        habitacion.save()
 
-        # Crear factura
-        factura = Factura.objects.create(
-            reserva=reserva,
-            total=reserva.costo()  # Asegúrate de que la función 'costo()' esté definida en tu modelo
-        )
+        # Crear factura (el total se calcula solo a partir de la reserva)
+        factura = Factura.objects.create(reserva=reserva)
 
         # Generar el PDF de la factura
         generar_factura_pdf(factura)
@@ -81,6 +86,10 @@ def realizar_reserva():
         messagebox.showerror("Error", "Cliente no encontrado.")
     except Habitacion.DoesNotExist:
         messagebox.showerror("Error", "Habitación no encontrada.")
+    except ValidationError as exc:
+        mensajes = exc.message_dict if hasattr(exc, "message_dict") else {"Error": exc.messages}
+        texto = "\n".join(f"{campo}: {', '.join(msgs)}" for campo, msgs in mensajes.items())
+        messagebox.showerror("Reserva no válida", texto)
 
 # Configuración de la ventana principal
 ventana = tk.Tk()

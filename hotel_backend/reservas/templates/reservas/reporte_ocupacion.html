@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titulo %}Reporte de ocupación — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<nav class="mb-3 small">
+  <a href="{% url 'reportes_lista' %}"><i class="bi bi-arrow-left"></i> Volver a reportes</a>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0"><i class="bi bi-pie-chart"></i> Ocupación</h1>
+  <a href="?formato=pdf" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-file-earmark-pdf"></i> Descargar PDF
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Habitaciones totales</div>
+        <div class="fs-2 fw-semibold">{{ total }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">% de ocupación</div>
+        <div class="fs-2 fw-semibold">{{ porcentaje }}%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr class="text-muted small"><th>Estado</th><th>Cantidad</th></tr></thead>
+      <tbody>
+        {% for etiqueta, cantidad in por_estado %}
+        <tr><td>{{ etiqueta }}</td><td>{{ cantidad }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titulo %}Reportes — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4"><i class="bi bi-graph-up"></i> Reportes</h1>
+
+<div class="row g-3">
+  {% if perms.reservas.view_habitacion %}
+  <div class="col-md-4">
+    <a href="{% url 'reporte_ocupacion' %}" class="card border-0 shadow-sm h-100 text-decoration-none text-dark">
+      <div class="card-body">
+        <h2 class="h6"><i class="bi bi-door-closed"></i> Ocupación</h2>
+        <p class="text-muted small mb-0">Habitaciones por estado y % de ocupación ahora mismo.</p>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% if perms.reservas.view_factura %}
+  <div class="col-md-4">
+    <a href="{% url 'reporte_ingresos' %}" class="card border-0 shadow-sm h-100 text-decoration-none text-dark">
+      <div class="card-body">
+        <h2 class="h6"><i class="bi bi-cash-coin"></i> Ingresos</h2>
+        <p class="text-muted small mb-0">Facturación por día en un rango de fechas.</p>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% if perms.reservas.view_reserva %}
+  <div class="col-md-4">
+    <a href="{% url 'reporte_reservas' %}" class="card border-0 shadow-sm h-100 text-decoration-none text-dark">
+      <div class="card-body">
+        <h2 class="h6"><i class="bi bi-journal-bookmark"></i> Reservas</h2>
+        <p class="text-muted small mb-0">Confirmadas, canceladas, completadas y no-show.</p>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% if perms.reservas.view_cliente %}
+  <div class="col-md-4">
+    <a href="{% url 'reporte_huespedes' %}" class="card border-0 shadow-sm h-100 text-decoration-none text-dark">
+      <div class="card-body">
+        <h2 class="h6"><i class="bi bi-people"></i> Huéspedes</h2>
+        <p class="text-muted small mb-0">Quiénes reservan más y cuánto gastan.</p>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% if perms.reservas.view_consumo %}
+  <div class="col-md-4">
+    <a href="{% url 'reporte_servicios' %}" class="card border-0 shadow-sm h-100 text-decoration-none text-dark">
+      <div class="card-body">
+        <h2 class="h6"><i class="bi bi-cup-hot"></i> Servicios</h2>
+        <p class="text-muted small mb-0">Consumo por servicio y categoría.</p>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% if perms.reservas.view_pago %}
+  <div class="col-md-4">
+    <a href="{% url 'reporte_pagos' %}" class="card border-0 shadow-sm h-100 text-decoration-none text-dark">
+      <div class="card-body">
+        <h2 class="h6"><i class="bi bi-credit-card"></i> Pagos</h2>
+        <p class="text-muted small mb-0">Totales por método de pago.</p>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -11,21 +11,41 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Carga las variables definidas en hotel_backend/.env (no se sube a git).
+load_dotenv(BASE_DIR / '.env')
+
+
+def _env_bool(name, default=False):
+    return os.environ.get(name, str(default)).strip().lower() in ('1', 'true', 'yes', 'on')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-2jolx@x7v3z+g6x*1k#4-qro_%m*1z3#+b1##wbij7cgq@9=13'
+try:
+    SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+except KeyError as exc:
+    raise RuntimeError(
+        'Falta DJANGO_SECRET_KEY. Copia hotel_backend/.env.example a '
+        'hotel_backend/.env y completa los valores.'
+    ) from exc
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool('DJANGO_DEBUG', default=False)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',')
+    if host.strip()
+]
 
 
 # Application definition
@@ -63,6 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'reservas.context_processors.notificaciones',
             ],
         },
     },
@@ -73,18 +94,24 @@ WSGI_APPLICATION = 'hotel_backend.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
+#
+# SQLite: un solo archivo, sin servidor que instalar/configurar ni
+# credenciales que gestionar. Django usa automáticamente una base en
+# memoria para "manage.py test" cuando el motor es sqlite3, así que no
+# hace falta ninguna rama especial para los tests.
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'hotel_db',
-        'USER': 'root',
-        'PASSWORD': '088266619Da.di',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.environ.get('DB_NAME', BASE_DIR / 'db.sqlite3'),
     }
 }
 
+
+# Autenticación
+# https://docs.djangoproject.com/en/5.1/topics/auth/default/
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
 
 
 # Password validation
@@ -109,9 +136,16 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+# El resto del sistema está escrito en español a mano; esto hace que el
+# admin de Django (textos, fechas, "Select X to change", etc.) también lo
+# esté, en vez de quedar en inglés por defecto.
+LANGUAGE_CODE = 'es'
 
-TIME_ZONE = 'UTC'
+# Sección 31: el hotel opera en Ecuador (UTC-5, sin horario de verano) —
+# con 'UTC' acá, entre las 19:00 y la medianoche hora local el sistema ya
+# piensa que es "mañana" (dashboard, check-in/check-out, reportes, todo
+# lo que usa timezone.localdate()/now() corrido un día).
+TIME_ZONE = 'America/Guayaquil'
 
 USE_I18N = True
 
@@ -123,7 +157,32 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media (imágenes subidas, ej. fotos de habitación)
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Correo (envío de facturas/comprobantes a los huéspedes)
+# https://docs.djangoproject.com/en/5.1/topics/email/
+#
+# Sin EMAIL_HOST en .env, cae en el backend de consola: los correos se
+# imprimen en el log del servidor en vez de salir de verdad. Es a propósito
+# — así nunca decimos "se envió el correo" cuando en realidad no hay SMTP
+# configurado. Para que salgan de verdad, completar EMAIL_HOST/PORT/USER/
+# PASSWORD en .env (ver .env.example).
+if os.environ.get('EMAIL_HOST'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ['EMAIL_HOST']
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', default=True)
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-responder@sistema-hotelero.local')

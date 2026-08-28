@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}Reporte de ingresos — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<nav class="mb-3 small">
+  <a href="{% url 'reportes_lista' %}"><i class="bi bi-arrow-left"></i> Volver a reportes</a>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h1 class="h3 mb-0"><i class="bi bi-cash-coin"></i> Ingresos</h1>
+  <form method="get" class="d-flex gap-2 align-items-end">
+    <div>
+      <label class="form-label small mb-0">Desde</label>
+      <input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}" class="form-control form-control-sm">
+    </div>
+    <div>
+      <label class="form-label small mb-0">Hasta</label>
+      <input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}" class="form-control form-control-sm">
+    </div>
+    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-funnel"></i> Filtrar</button>
+    <a href="?desde={{ desde|date:'Y-m-d' }}&hasta={{ hasta|date:'Y-m-d' }}&formato=csv" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-filetype-csv"></i> CSV
+    </a>
+  </form>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body">
+    <div class="text-muted small">Total del período ({{ desde|date:"d/m/Y" }} — {{ hasta|date:"d/m/Y" }})</div>
+    <div class="fs-2 fw-semibold">${{ total_periodo }}</div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr class="text-muted small"><th>Fecha</th><th>Total facturado</th></tr></thead>
+      <tbody>
+        {% for f in por_dia %}
+        <tr><td>{{ f.fecha|date:"d/m/Y" }}</td><td>${{ f.total }}</td></tr>
+        {% empty %}
+        <tr><td colspan="2" class="text-center text-muted py-4">No hay facturas en este período.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

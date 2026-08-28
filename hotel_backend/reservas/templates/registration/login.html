@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingresar — Sistema Hotelero</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root {
+    --acento: #6366f1;
+    --acento-oscuro: #4f46e5;
+    --acento-claro: #818cf8;
+  }
+  html, body { height: 100%; }
+  body { margin: 0; background: #f4f6f9; }
+
+  .btn-primary {
+    --bs-btn-bg: var(--acento); --bs-btn-border-color: var(--acento);
+    --bs-btn-hover-bg: var(--acento-oscuro); --bs-btn-hover-border-color: var(--acento-oscuro);
+    --bs-btn-active-bg: var(--acento-oscuro); --bs-btn-active-border-color: var(--acento-oscuro);
+    --bs-btn-focus-shadow-rgb: 99, 102, 241;
+  }
+  .form-check-input:checked { background-color: var(--acento); border-color: var(--acento); }
+
+  .pantalla-login { min-height: 100vh; display: flex; }
+
+  /* --- Panel izquierdo: marca del sistema, sin foto real (no hay assets
+     del hotel todavía) — el ambiente "boutique" se logra con degradados e
+     íconos, no con una imagen de stock genérica. --- */
+  .panel-marca {
+    flex: 1 1 55%;
+    position: relative;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 3rem;
+    color: #fff;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(129, 140, 248, .35), transparent 45%),
+      radial-gradient(circle at 85% 75%, rgba(99, 102, 241, .30), transparent 50%),
+      linear-gradient(160deg, #1e1b34 0%, #14122a 100%);
+    overflow: hidden;
+  }
+  .panel-marca::before {
+    /* puntitos sutiles, como luces lejanas de noche */
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,.10) 1px, transparent 1px);
+    background-size: 26px 26px;
+    opacity: .5;
+  }
+  .panel-marca > * { position: relative; z-index: 1; }
+
+  .marca-logo { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: 1.4rem; letter-spacing: .02em; }
+  .marca-logo i { font-size: 1.7rem; color: var(--acento-claro); }
+
+  .marca-centro { margin: auto 0; max-width: 460px; }
+  .marca-centro h1 { font-size: 2.1rem; font-weight: 700; line-height: 1.25; margin-bottom: .75rem; }
+  .marca-centro p { color: #c7cbe6; font-size: 1.02rem; }
+
+  .marca-feature { display: flex; align-items: center; gap: .75rem; margin-top: 1.5rem; color: #dcdff2; }
+  .marca-feature i {
+    width: 2.3rem; height: 2.3rem; border-radius: .6rem; background: rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: center; color: var(--acento-claro); flex-shrink: 0;
+  }
+
+  .marca-footer { color: #8b8fb0; font-size: .8rem; }
+
+  /* --- Panel derecho: la tarjeta de acceso --- */
+  .panel-form {
+    flex: 1 1 45%;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; padding: 2rem;
+  }
+  .login-card { width: 100%; max-width: 360px; }
+  .login-card .input-group-text { background: #f4f6f9; }
+
+  @media (max-width: 900px) {
+    .pantalla-login { flex-direction: column; }
+    .panel-marca { flex: 0 0 auto; padding: 2rem 1.5rem; }
+    .marca-centro { margin: 1.25rem 0; }
+    .marca-centro h1 { font-size: 1.5rem; }
+    .marca-feature { display: none; }
+    .panel-form { flex: 1 1 auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="pantalla-login">
+  <div class="panel-marca">
+    <div class="marca-logo"><i class="bi bi-building"></i> Sistema Hotelero</div>
+
+    <div class="marca-centro">
+      <h1>Gestión hotelera integral, todo en un solo lugar</h1>
+      <p>Reservas, ingreso y salida de huéspedes, pagos y facturación, limpieza y mantenimiento — coordinados en un mismo sistema.</p>
+
+      <div class="marca-feature"><i class="bi bi-journal-bookmark"></i> Reservas y disponibilidad en tiempo real</div>
+      <div class="marca-feature"><i class="bi bi-credit-card"></i> Pagos, comprobantes y facturación automática</div>
+      <div class="marca-feature"><i class="bi bi-shield-check"></i> Roles, permisos y auditoría de cada acción</div>
+    </div>
+
+    <div class="marca-footer">© {% now "Y" %} Sistema Hotelero</div>
+  </div>
+
+  <div class="panel-form">
+    <div class="login-card">
+      <h2 class="h4 mb-1">Iniciar sesión</h2>
+      <p class="text-muted small mb-4">Bienvenido, ingresá tus credenciales para continuar.</p>
+
+      {% if form.errors %}
+        <div class="alert alert-danger py-2 small">Usuario o contraseña incorrectos.</div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="id_username" class="form-label">Usuario</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input type="text" name="username" autofocus class="form-control" id="id_username" required>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="id_password" class="form-label">Contraseña</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input type="password" name="password" class="form-control" id="id_password" required>
+          </div>
+        </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" name="recordarme" class="form-check-input" id="id_recordarme">
+          <label class="form-check-label small" for="id_recordarme">Mantener sesión iniciada en este equipo</label>
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-box-arrow-in-right"></i> Ingresar</button>
+      </form>
+
+      <p class="text-muted small text-center mt-4 mb-0">¿Problemas para ingresar? Contactá a un administrador del sistema.</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
