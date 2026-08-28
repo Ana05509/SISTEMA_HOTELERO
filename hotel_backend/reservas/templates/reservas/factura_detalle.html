@@ -106,7 +106,16 @@
       </thead>
       <tbody>
         <tr>
-          <td>Alojamiento — {{ reserva.habitacion.tipo.nombre }} ({{ reserva.duracion }} noche{{ reserva.duracion|pluralize }})</td>
+          <td>
+            Alojamiento — {{ reserva.habitacion.tipo.nombre }} ({{ reserva.duracion }} noche{{ reserva.duracion|pluralize }})
+            {% with temporada=reserva.temporada_especial %}
+            {% if temporada and temporada.porcentaje_ajuste %}
+            <br><span class="badge {% if temporada.es_descuento %}text-bg-success{% else %}text-bg-warning{% endif %} mt-1">
+              <i class="bi bi-stars"></i> {{ temporada.nombre }} ({{ temporada.porcentaje_ajuste }}%)
+            </span>
+            {% endif %}
+            {% endwith %}
+          </td>
           <td class="text-end">1</td>
           <td class="text-end">${{ reserva.habitacion.precio }}</td>
           <td class="text-end">${{ reserva.costo }}</td>

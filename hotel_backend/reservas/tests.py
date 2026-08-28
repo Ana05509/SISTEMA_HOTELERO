@@ -10,8 +10,8 @@ from django.urls import reverse
 
 from . import services
 from .models import (
-    AuditLog, Cliente, ConfiguracionHotel, Consumo, Factura, Habitacion, Incidencia, Pago, Reserva, Servicio,
-    TareaLimpieza, TipoHabitacion,
+    AuditLog, Cliente, ConfiguracionHotel, Consumo, Factura, FechaEspecial, Habitacion, Incidencia, Pago, Reserva,
+    Servicio, TareaLimpieza, TipoHabitacion,
 )
 from .validadores_ecuador import cedula_valida, ruc_valido
 
@@ -633,6 +633,155 @@ class PreciosHabitacionesTests(TestCase):
         self.assertTrue(
             AuditLog.objects.filter(modulo='habitaciones', descripcion__icontains='201').exists()
         )
+
+
+class FechasEspecialesTests(TestCase):
+    """Sección 32: temporadas con descuento/recargo automático sobre
+    Reserva.costo()."""
+
+    def setUp(self):
+        self.cliente = Cliente.objects.create(
+            cedula='1710034065', nombre='Ana', apellido='Torres',
+            telefono='0991234567', correo='ana@example.com',
+        )
+        self.habitacion = Habitacion.objects.create(
+            codigo='HTMP', numero='601', tipo=_tipo('Doble'), precio=100,
+        )
+        self.reserva = Reserva.objects.create(
+            cliente=self.cliente, habitacion=self.habitacion,
+            fecha_ingreso=date(2026, 12, 24), fecha_salida=date(2026, 12, 26),
+        )  # 2 noches × $100 = $200 nominal
+
+    def test_sin_fecha_especial_el_costo_no_cambia(self):
+        self.assertEqual(self.reserva.costo(), 200)
+        self.assertIsNone(self.reserva.temporada_especial())
+
+    def test_descuento_de_temporada_se_aplica(self):
+        FechaEspecial.objects.create(
+            nombre='Navidad', fecha_inicio=date(2026, 12, 20), fecha_fin=date(2026, 12, 31),
+            porcentaje_ajuste=Decimal('-20'),
+        )
+        self.assertEqual(self.reserva.costo(), Decimal('160.00'))  # $200 - 20%
+
+    def test_recargo_de_temporada_se_aplica(self):
+        FechaEspecial.objects.create(
+            nombre='Fin de año', fecha_inicio=date(2026, 12, 20), fecha_fin=date(2026, 12, 31),
+            porcentaje_ajuste=Decimal('15'),
+        )
+        self.assertEqual(self.reserva.costo(), Decimal('230.00'))  # $200 + 15%
+
+    def test_fecha_especial_fuera_de_rango_no_aplica(self):
+        FechaEspecial.objects.create(
+            nombre='San Valentín', fecha_inicio=date(2026, 2, 10), fecha_fin=date(2026, 2, 16),
+            porcentaje_ajuste=Decimal('-30'),
+        )
+        self.assertEqual(self.reserva.costo(), 200)
+
+    def test_fecha_especial_inactiva_no_aplica(self):
+        FechaEspecial.objects.create(
+            nombre='Navidad', fecha_inicio=date(2026, 12, 20), fecha_fin=date(2026, 12, 31),
+            porcentaje_ajuste=Decimal('-20'), activo=False,
+        )
+        self.assertEqual(self.reserva.costo(), 200)
+
+    def test_fecha_fin_anterior_a_inicio_es_invalida(self):
+        fecha_especial = FechaEspecial(
+            nombre='Mal cargada', fecha_inicio=date(2026, 12, 31), fecha_fin=date(2026, 12, 20),
+        )
+        with self.assertRaises(ValidationError):
+            fecha_especial.full_clean()
+
+    def test_cubre_hoy(self):
+        activa = FechaEspecial.objects.create(
+            nombre='Hoy', fecha_inicio=date.today(), fecha_fin=date.today(), porcentaje_ajuste=Decimal('-10'),
+        )
+        vieja = FechaEspecial.objects.create(
+            nombre='Vieja', fecha_inicio=date(2020, 1, 1), fecha_fin=date(2020, 1, 5),
+        )
+        self.assertTrue(activa.cubre_hoy())
+        self.assertFalse(vieja.cubre_hoy())
+
+
+class FechasEspecialesWebTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command('setup_roles', verbosity=0)
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser('admin_temp', 'admin_temp@example.com', 'x')
+        self.client.force_login(self.admin)
+
+    def test_lista_se_renderiza(self):
+        FechaEspecial.objects.create(nombre='Navidad', fecha_inicio=date(2026, 12, 20), fecha_fin=date(2026, 12, 31))
+        respuesta = self.client.get(reverse('fechas_especiales_lista'))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Navidad')
+
+    def test_crear_fecha_especial(self):
+        respuesta = self.client.post(reverse('fecha_especial_nueva'), {
+            'nombre': 'Semana Santa', 'fecha_inicio': '2026-04-02', 'fecha_fin': '2026-04-05',
+            'porcentaje_ajuste': '-10', 'tema': 'ninguno', 'activo': 'on', 'descripcion': '',
+        })
+        self.assertRedirects(respuesta, reverse('fechas_especiales_lista'))
+        self.assertTrue(FechaEspecial.objects.filter(nombre='Semana Santa').exists())
+
+    def test_crear_con_fechas_invertidas_no_se_guarda(self):
+        respuesta = self.client.post(reverse('fecha_especial_nueva'), {
+            'nombre': 'Mal cargada', 'fecha_inicio': '2026-12-31', 'fecha_fin': '2026-12-20',
+            'porcentaje_ajuste': '0', 'tema': 'ninguno', 'activo': 'on', 'descripcion': '',
+        })
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertFalse(FechaEspecial.objects.filter(nombre='Mal cargada').exists())
+
+    def test_editar_fecha_especial(self):
+        fecha_especial = FechaEspecial.objects.create(
+            nombre='Navidad', fecha_inicio=date(2026, 12, 20), fecha_fin=date(2026, 12, 31),
+        )
+        respuesta = self.client.post(reverse('fecha_especial_editar', args=[fecha_especial.id]), {
+            'nombre': 'Navidad y Año Nuevo', 'fecha_inicio': '2026-12-20', 'fecha_fin': '2027-01-02',
+            'porcentaje_ajuste': '-15', 'tema': 'navidad', 'activo': 'on', 'descripcion': '',
+        })
+        self.assertRedirects(respuesta, reverse('fechas_especiales_lista'))
+        fecha_especial.refresh_from_db()
+        self.assertEqual(fecha_especial.nombre, 'Navidad y Año Nuevo')
+        self.assertEqual(fecha_especial.tema, 'navidad')
+
+    def test_eliminar_fecha_especial(self):
+        fecha_especial = FechaEspecial.objects.create(
+            nombre='A borrar', fecha_inicio=date(2026, 1, 1), fecha_fin=date(2026, 1, 5),
+        )
+        respuesta = self.client.post(reverse('fecha_especial_eliminar', args=[fecha_especial.id]))
+        self.assertRedirects(respuesta, reverse('fechas_especiales_lista'))
+        self.assertFalse(FechaEspecial.objects.filter(pk=fecha_especial.id).exists())
+
+    def test_recepcionista_no_puede_gestionar_fechas_especiales(self):
+        recepcionista = User.objects.create_user('recep_temp', password='x', is_staff=True)
+        recepcionista.groups.add(Group.objects.get(name='Recepcionista'))
+        self.client.force_login(recepcionista)
+        self.assertEqual(self.client.get(reverse('fechas_especiales_lista')).status_code, 403)
+
+    def test_tema_activo_recolorea_el_dashboard(self):
+        FechaEspecial.objects.create(
+            nombre='Navidad', fecha_inicio=date.today(), fecha_fin=date.today() + timedelta(days=5),
+            porcentaje_ajuste=Decimal('-20'), tema='navidad',
+        )
+        respuesta = self.client.get(reverse('dashboard'))
+        self.assertContains(respuesta, 'banda-temporada')
+        self.assertContains(respuesta, 'Navidad')
+        self.assertContains(respuesta, '#c0392b')
+
+    def test_sin_tema_no_hay_banda_ni_recoloreo(self):
+        FechaEspecial.objects.create(
+            nombre='Solo descuento', fecha_inicio=date.today(), fecha_fin=date.today() + timedelta(days=5),
+            porcentaje_ajuste=Decimal('-20'), tema='ninguno',
+        )
+        respuesta = self.client.get(reverse('dashboard'))
+        # 'banda-temporada' es también el nombre de la regla CSS (siempre
+        # presente en el <style>), así que no sirve para distinguir si el
+        # banner se renderizó — se busca el div real y el nombre visible.
+        self.assertNotContains(respuesta, 'class="banda-temporada mb-3"')
+        self.assertNotContains(respuesta, 'Solo descuento')
+        self.assertIsNone(respuesta.context['tema_temporada'])
 
 
 class ServiciosReservaTests(TestCase):

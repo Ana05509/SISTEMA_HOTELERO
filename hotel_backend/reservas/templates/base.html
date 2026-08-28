@@ -97,7 +97,20 @@
     .sidebar.mostrar { transform: translateX(0); }
     .contenido { margin-left: 0; }
   }
+
+  .banda-temporada { text-align: center; padding: .4rem; font-size: .82rem; font-weight: 500; color: #fff; }
 </style>
+{% if tema_temporada %}
+{# Sección 32: recolorea el sistema mientras la fecha especial está vigente — pisa las variables de :root de arriba. #}
+<style>
+  :root {
+    --acento: {{ tema_temporada.acento }};
+    --acento-oscuro: {{ tema_temporada.acento_oscuro }};
+    --acento-claro: {{ tema_temporada.acento_claro }};
+    --sidebar-bg: {{ tema_temporada.sidebar_bg }};
+  }
+</style>
+{% endif %}
 {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -249,6 +262,13 @@
       </a>
     </li>
     {% endif %}
+    {% if perms.reservas.view_fechaespecial %}
+    <li class="nav-item">
+      <a class="nav-link {% if seccion == 'fechas_especiales' %}active{% endif %}" href="{% url 'fechas_especiales_lista' %}">
+        <i class="bi bi-stars"></i> Fechas especiales
+      </a>
+    </li>
+    {% endif %}
     {% if request.user.is_superuser %}
     <li class="nav-item">
       <a class="nav-link {% if seccion == 'usuarios' %}active{% endif %}" href="{% url 'usuarios_lista' %}">
@@ -279,6 +299,16 @@
 </nav>
 
 <main class="contenido" id="contenido">
+  {% if tema_temporada %}
+  <div class="banda-temporada mb-3" style="background: var(--acento); border-radius: .5rem;">
+    <i class="bi {{ tema_temporada.icono }}"></i> {{ tema_temporada.fecha_especial.nombre }}
+    {% if tema_temporada.fecha_especial.porcentaje_ajuste < 0 %}
+      — {{ tema_temporada.fecha_especial.porcentaje_ajuste }}% de descuento en habitaciones
+    {% elif tema_temporada.fecha_especial.porcentaje_ajuste > 0 %}
+      — recargo de temporada alta ({{ tema_temporada.fecha_especial.porcentaje_ajuste }}%)
+    {% endif %}
+  </div>
+  {% endif %}
   {% if messages %}
     {% for message in messages %}
       <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block titulo %}{% if modo == 'crear' %}Nueva fecha especial{% else %}Editar fecha especial{% endif %} — Sistema Hotelero{% endblock %}
+
+{% block content %}
+<nav class="mb-3 small">
+  <a href="{% url 'fechas_especiales_lista' %}"><i class="bi bi-arrow-left"></i> Volver a fechas especiales</a>
+</nav>
+
+<h1 class="h3 mb-4">
+  <i class="bi bi-stars"></i>
+  {% if modo == 'crear' %}Nueva fecha especial{% else %}Editar {{ fecha_especial.nombre }}{% endif %}
+</h1>
+
+<div class="card border-0 shadow-sm" style="max-width: 40rem;">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label small mb-1">{{ form.nombre.label }}</label>
+          {{ form.nombre }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-1">{{ form.fecha_inicio.label }}</label>
+          {{ form.fecha_inicio }}
+          {% for error in form.fecha_inicio.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-1">{{ form.fecha_fin.label }}</label>
+          {{ form.fecha_fin }}
+          {% for error in form.fecha_fin.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-1">{{ form.porcentaje_ajuste.label }}</label>
+          {{ form.porcentaje_ajuste }}
+          <div class="form-text">{{ form.porcentaje_ajuste.help_text }}</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-1">{{ form.tema.label }}</label>
+          {{ form.tema }}
+          <div class="form-text">{{ form.tema.help_text }}</div>
+        </div>
+        <div class="col-12">
+          <div class="form-check">
+            {{ form.activo }}
+            <label class="form-check-label" for="{{ form.activo.id_for_label }}">{{ form.activo.label }}</label>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label small mb-1">Descripción</label>
+          {{ form.descripcion }}
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary mt-3">
+        <i class="bi bi-check-lg"></i> {% if modo == 'crear' %}Crear{% else %}Guardar cambios{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

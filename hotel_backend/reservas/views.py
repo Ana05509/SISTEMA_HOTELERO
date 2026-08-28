@@ -23,12 +23,12 @@ from django.views.decorators.http import require_http_methods
 from . import auditoria, comprobantes, services
 from .decorators import login_required_api, permission_required_api
 from .forms import (
-    BusquedaDisponibilidadForm, CambiarPasswordForm, ConfiguracionHotelForm, ConsumoForm, IncidenciaForm, PagoForm,
-    ReservaForm, UsuarioCrearForm, UsuarioEditarForm,
+    BusquedaDisponibilidadForm, CambiarPasswordForm, ConfiguracionHotelForm, ConsumoForm, FechaEspecialForm,
+    IncidenciaForm, PagoForm, ReservaForm, UsuarioCrearForm, UsuarioEditarForm,
 )
 from .models import (
-    AuditLog, Cliente, ConfiguracionHotel, Consumo, ESTADOS_HABITACION, Factura, Habitacion, Incidencia, Pago,
-    Reserva, TareaLimpieza, TipoHabitacion,
+    AuditLog, Cliente, ConfiguracionHotel, Consumo, ESTADOS_HABITACION, Factura, FechaEspecial, Habitacion,
+    Incidencia, Pago, Reserva, TareaLimpieza, TipoHabitacion,
 )
 
 # Módulos del plan que todavía no existen: se muestran en el menú como
@@ -191,6 +191,72 @@ def precios_habitaciones(request):
         'habitaciones': habitaciones,
         'puede_editar': puede_editar,
     })
+
+
+@permission_required('reservas.view_fechaespecial', raise_exception=True)
+def fechas_especiales_lista(request):
+    """Temporadas especiales (sección 32): rango de fechas con descuento/
+    recargo automático sobre el precio y, opcionalmente, un tema visual
+    que recolorea el sistema mientras están vigentes."""
+    fechas = FechaEspecial.objects.all()
+    return render(request, 'reservas/fechas_especiales_lista.html', {
+        'seccion': 'fechas_especiales', 'fechas': fechas,
+    })
+
+
+@permission_required('reservas.add_fechaespecial', raise_exception=True)
+def fecha_especial_nueva(request):
+    if request.method == 'POST':
+        form = FechaEspecialForm(request.POST)
+        if form.is_valid():
+            fecha_especial = form.save()
+            auditoria.registrar_desde_request(
+                request, 'crear', 'fechas_especiales', objeto=fecha_especial,
+                descripcion=f'Fecha especial "{fecha_especial.nombre}" creada '
+                            f'({fecha_especial.fecha_inicio} a {fecha_especial.fecha_fin}).',
+            )
+            messages.success(request, f'"{fecha_especial.nombre}" creada.')
+            return redirect('fechas_especiales_lista')
+        messages.error(request, 'Revisá los datos de la fecha especial.')
+    else:
+        form = FechaEspecialForm()
+    return render(request, 'reservas/fecha_especial_form.html', {
+        'seccion': 'fechas_especiales', 'form': form, 'modo': 'crear',
+    })
+
+
+@permission_required('reservas.change_fechaespecial', raise_exception=True)
+def fecha_especial_editar(request, fecha_especial_id):
+    fecha_especial = get_object_or_404(FechaEspecial, pk=fecha_especial_id)
+    if request.method == 'POST':
+        form = FechaEspecialForm(request.POST, instance=fecha_especial)
+        if form.is_valid():
+            form.save()
+            auditoria.registrar_desde_request(
+                request, 'modificar', 'fechas_especiales', objeto=fecha_especial,
+                descripcion=f'Fecha especial "{fecha_especial.nombre}" editada.',
+            )
+            messages.success(request, f'"{fecha_especial.nombre}" actualizada.')
+            return redirect('fechas_especiales_lista')
+        messages.error(request, 'Revisá los datos de la fecha especial.')
+    else:
+        form = FechaEspecialForm(instance=fecha_especial)
+    return render(request, 'reservas/fecha_especial_form.html', {
+        'seccion': 'fechas_especiales', 'form': form, 'modo': 'editar', 'fecha_especial': fecha_especial,
+    })
+
+
+@require_http_methods(['POST'])
+@permission_required('reservas.delete_fechaespecial', raise_exception=True)
+def fecha_especial_eliminar(request, fecha_especial_id):
+    fecha_especial = get_object_or_404(FechaEspecial, pk=fecha_especial_id)
+    nombre = fecha_especial.nombre
+    fecha_especial.delete()
+    auditoria.registrar_desde_request(
+        request, 'eliminar', 'fechas_especiales', descripcion=f'Fecha especial "{nombre}" eliminada.',
+    )
+    messages.success(request, f'"{nombre}" eliminada.')
+    return redirect('fechas_especiales_lista')
 
 
 @permission_required('reservas.view_habitacion', raise_exception=True)

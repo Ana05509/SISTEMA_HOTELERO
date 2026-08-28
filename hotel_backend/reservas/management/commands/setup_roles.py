@@ -19,8 +19,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 
 from reservas.models import (
-    AuditLog, Cliente, ConfiguracionHotel, Consumo, Factura, Habitacion, Incidencia, Pago, Reserva, Servicio,
-    TareaLimpieza, TipoHabitacion,
+    AuditLog, Cliente, ConfiguracionHotel, Consumo, Factura, FechaEspecial, Habitacion, Incidencia, Pago, Reserva,
+    Servicio, TareaLimpieza, TipoHabitacion,
 )
 
 # rol -> {modelo: [acciones]}. Acciones válidas: add, change, delete, view.
@@ -43,6 +43,7 @@ ROLES = {
         # Sin 'add'/'delete': ConfiguracionHotel es un singleton (ver
         # models.py), no se crean ni se borran filas desde la UI.
         ConfiguracionHotel: ['view', 'change'],
+        FechaEspecial: ['add', 'change', 'delete', 'view'],
         AuditLog: ['view'],
     },
     'Recepcionista': {
@@ -81,6 +82,7 @@ ROLES = {
         TareaLimpieza: ['view'],
         Incidencia: ['view'],
         ConfiguracionHotel: ['view'],
+        FechaEspecial: ['view'],
         AuditLog: ['view'],
     },
 }

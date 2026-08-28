@@ -202,13 +202,18 @@ def pdf_factura_bytes(factura):
     elementos.append(Spacer(1, 16))
 
     # Detalle: alojamiento + consumos
+    descripcion_alojamiento = f'Alojamiento — {reserva.habitacion.tipo.nombre} ({reserva.duracion()} noche(s))'
+    temporada = reserva.temporada_especial()
+    if temporada and temporada.porcentaje_ajuste:
+        descripcion_alojamiento += f'<br/><font size="8" color="{c["gris"].hexval()}">★ {temporada.nombre} ({temporada.porcentaje_ajuste}%)</font>'
+
     filas = [[
         Paragraph('Descripción', styles['celda_header']),
         Paragraph('Cant.', styles['celda_header']),
         Paragraph('P. unitario', styles['celda_header']),
         Paragraph('Total', styles['celda_header']),
     ], [
-        Paragraph(f'Alojamiento — {reserva.habitacion.tipo.nombre} ({reserva.duracion()} noche(s))', styles['celda']),
+        Paragraph(descripcion_alojamiento, styles['celda']),
         Paragraph('1', styles['celda']),
         Paragraph(f'${reserva.habitacion.precio}', styles['celda']),
         Paragraph(f'${reserva.costo()}', styles['celda']),

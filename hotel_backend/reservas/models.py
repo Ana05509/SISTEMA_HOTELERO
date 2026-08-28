@@ -173,10 +173,24 @@ class Reserva(models.Model):
     def duracion(self):
         return (self.fecha_salida - self.fecha_ingreso).days
 
+    def temporada_especial(self):
+        """La fecha especial activa que se solapa con esta estadía (sección
+        32) — si hay más de una, la de fecha_inicio más reciente. None si
+        ninguna aplica."""
+        return FechaEspecial.objects.filter(
+            activo=True, fecha_inicio__lte=self.fecha_salida, fecha_fin__gte=self.fecha_ingreso,
+        ).order_by('-fecha_inicio').first()
+
     def costo(self):
-        """Solo el costo del alojamiento (noches × precio). No incluye
-        consumos — para eso está total_con_iva()."""
-        return self.habitacion.precio * self.duracion()
+        """Costo del alojamiento (noches × precio), con el % de descuento
+        o recargo de la fecha especial vigente ya aplicado, si hay una.
+        No incluye consumos — para eso está total_con_iva()."""
+        base = self.habitacion.precio * self.duracion()
+        temporada = self.temporada_especial()
+        if temporada and temporada.porcentaje_ajuste:
+            factor = Decimal('1') + (temporada.porcentaje_ajuste / Decimal('100'))
+            base = (base * factor).quantize(Decimal('0.01'))
+        return base
 
     def total_consumos(self):
         return self.consumos.aggregate(t=Sum('subtotal'))['t'] or 0
@@ -563,3 +577,53 @@ class ConfiguracionHotel(models.Model):
     def actual(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+TEMAS_ESPECIALES = [
+    ('ninguno', 'Sin tema visual (solo precio)'),
+    ('navidad', 'Navidad'),
+    ('fin_de_ano', 'Fin de año'),
+    ('san_valentin', 'San Valentín'),
+    ('halloween', 'Halloween'),
+    ('aniversario', 'Aniversario del hotel'),
+    ('verano', 'Temporada de playa / verano'),
+]
+
+
+# Fechas especiales (sección 32): temporadas con un % de descuento o
+# recargo automático sobre el alojamiento (Reserva.costo() las consulta),
+# y opcionalmente un tema visual que recolorea el sistema mientras están
+# vigentes (ver context_processors.tema_temporada y base.html).
+class FechaEspecial(models.Model):
+    nombre = models.CharField(max_length=80, help_text='Ej. "Navidad", "Feriado de Carnaval".')
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField()
+    porcentaje_ajuste = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal('0'), verbose_name='% de ajuste',
+        help_text='Negativo = descuento (ej. -20 para 20% off). Positivo = recargo de temporada alta. 0 = sin efecto en el precio.',
+    )
+    tema = models.CharField(
+        max_length=20, choices=TEMAS_ESPECIALES, default='ninguno',
+        help_text='Si elegís uno distinto de "ninguno", el sistema cambia de colores mientras la fecha esté vigente.',
+    )
+    activo = models.BooleanField(default=True, help_text='Desactivala para dejarla de aplicar sin borrarla.')
+    descripcion = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-fecha_inicio']
+        verbose_name = 'fecha especial'
+        verbose_name_plural = 'fechas especiales'
+
+    def __str__(self):
+        return f'{self.nombre} ({self.fecha_inicio} a {self.fecha_fin})'
+
+    def clean(self):
+        super().clean()
+        if self.fecha_inicio and self.fecha_fin and self.fecha_fin < self.fecha_inicio:
+            raise ValidationError({'fecha_fin': 'La fecha de fin no puede ser anterior a la de inicio.'})
+
+    def es_descuento(self):
+        return self.porcentaje_ajuste < 0
+
+    def cubre_hoy(self):
+        return self.activo and self.fecha_inicio <= date.today() <= self.fecha_fin

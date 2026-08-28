@@ -29,7 +29,17 @@
           <dd class="col-sm-8">{{ reserva.fecha_salida|date:"d/m/Y" }}{% if reserva.check_out_at %} — salida registrada {{ reserva.check_out_at|date:"d/m/Y H:i" }}{% endif %}</dd>
 
           <dt class="col-sm-4">Alojamiento</dt>
-          <dd class="col-sm-8">{{ reserva.duracion }} noche(s) × ${{ reserva.habitacion.precio }} = ${{ reserva.costo }}</dd>
+          <dd class="col-sm-8">
+            {{ reserva.duracion }} noche(s) × ${{ reserva.habitacion.precio }}
+            {% with temporada=reserva.temporada_especial %}
+            {% if temporada and temporada.porcentaje_ajuste %}
+            <span class="badge {% if temporada.es_descuento %}text-bg-success{% else %}text-bg-warning{% endif %}">
+              <i class="bi bi-stars"></i> {{ temporada.nombre }} ({{ temporada.porcentaje_ajuste }}%)
+            </span>
+            {% endif %}
+            {% endwith %}
+            = ${{ reserva.costo }}
+          </dd>
 
           {% if consumos %}
           <dt class="col-sm-4">Consumos</dt>

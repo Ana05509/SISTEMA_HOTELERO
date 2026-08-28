@@ -4,7 +4,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .models import (
-    METODOS_CON_REFERENCIA, METODOS_PAGO, PRIORIDADES_INCIDENCIA, Cliente, ConfiguracionHotel, Habitacion, Servicio,
+    METODOS_CON_REFERENCIA, METODOS_PAGO, PRIORIDADES_INCIDENCIA, Cliente, ConfiguracionHotel, FechaEspecial,
+    Habitacion, Servicio,
 )
 
 _INPUT = 'form-control form-control-sm'
@@ -179,4 +180,28 @@ class CambiarPasswordForm(forms.Form):
                 validate_password(p1)
             except DjangoValidationError as exc:
                 self.add_error('password1', exc)
+        return limpio
+
+
+class FechaEspecialForm(forms.ModelForm):
+    class Meta:
+        model = FechaEspecial
+        fields = ['nombre', 'fecha_inicio', 'fecha_fin', 'porcentaje_ajuste', 'tema', 'activo', 'descripcion']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': _INPUT, 'placeholder': 'Ej. Navidad'}),
+            'fecha_inicio': forms.DateInput(attrs={'class': _INPUT, 'type': 'date'}),
+            'fecha_fin': forms.DateInput(attrs={'class': _INPUT, 'type': 'date'}),
+            'porcentaje_ajuste': forms.NumberInput(attrs={
+                'class': _INPUT, 'step': '0.01', 'placeholder': '-20 = 20% off',
+            }),
+            'tema': forms.Select(attrs={'class': _SELECT}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'descripcion': forms.Textarea(attrs={'class': _INPUT, 'rows': 2}),
+        }
+
+    def clean(self):
+        limpio = super().clean()
+        inicio, fin = limpio.get('fecha_inicio'), limpio.get('fecha_fin')
+        if inicio and fin and fin < inicio:
+            self.add_error('fecha_fin', 'La fecha de fin no puede ser anterior a la de inicio.')
         return limpio

@@ -64,6 +64,11 @@ urlpatterns = [
 
     path('configuracion/', views.configuracion_ver, name='configuracion'),
 
+    path('fechas-especiales/', views.fechas_especiales_lista, name='fechas_especiales_lista'),
+    path('fechas-especiales/nueva/', views.fecha_especial_nueva, name='fecha_especial_nueva'),
+    path('fechas-especiales/<int:fecha_especial_id>/editar/', views.fecha_especial_editar, name='fecha_especial_editar'),
+    path('fechas-especiales/<int:fecha_especial_id>/eliminar/', views.fecha_especial_eliminar, name='fecha_especial_eliminar'),
+
     path('usuarios/', views.usuarios_lista, name='usuarios_lista'),
     path('usuarios/nuevo/', views.usuario_nuevo, name='usuario_nuevo'),
     path('usuarios/<int:usuario_id>/editar/', views.usuario_editar, name='usuario_editar'),

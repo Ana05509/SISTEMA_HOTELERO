@@ -84,6 +84,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'reservas.context_processors.notificaciones',
+                'reservas.context_processors.tema_temporada',
             ],
         },
     },
